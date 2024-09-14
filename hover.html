@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Hover and Click Play with Image</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #f9f871, #f56d9e); /* Bright, kid-friendly gradient */
+            overflow: hidden; /* Prevent scrollbars */
+            flex-direction: row; /* Align items horizontally */
+            flex-wrap: wrap; /* Allow wrapping if necessary */
+            padding: 20px; /* Add padding to body */
+        }
+
+        .video-container {
+            position: relative;
+            width: 15vw; /* Increased size for better visibility */
+            height: 15vw; /* Increased size for better visibility */
+            max-width: 300px; /* Max width for larger screens */
+            max-height: 300px; /* Max height for larger screens */
+            margin: 20px; /* Space between video containers */
+            border-radius: 20px; /* Rounded corners */
+            overflow: hidden; /* Hide overflow to keep rounded corners */
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.4); /* Add shadow for depth */
+            transition: transform 0.3s ease, box-shadow 0.3s ease; /* Smooth transitions */
+        }
+
+        .video-container:hover {
+            transform: scale(1.1); /* Slight zoom effect on hover */
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.6); /* Enhanced shadow on hover */
+        }
+
+        .video {
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+            transition: opacity 0.3s, transform 0.3s;
+            opacity: 0; /* Initially hidden */
+        }
+
+        .video-container:hover .video {
+            opacity: 1; /* Fully opaque on hover */
+            transform: scale(1.05); /* Slight zoom effect on hover */
+        }
+
+        .placeholder {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            cursor: pointer;
+            transition: opacity 0.3s, transform 0.3s;
+        }
+
+        .video-container:hover .placeholder {
+            opacity: 0; /* Hide placeholder on hover */
+            transform: scale(1.05); /* Slight zoom effect on hover */
+        }
+
+        .video-title {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.7); /* Semi-transparent background */
+            color: #fff;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8); /* Text shadow for better readability */
+            transition: background 0.3s; /* Smooth transition for background */
+        }
+
+        .video-container:hover .video-title {
+            background: rgba(0, 0, 0, 0.5); /* Change background color on hover */
+        }
+
+        /* Add fun animation for page load */
+        @keyframes bounceIn {
+            0% { transform: scale(0); opacity: 0; }
+            50% { transform: scale(1.05); opacity: 1; }
+            100% { transform: scale(1); }
+        }
+
+        .video-container {
+            animation: bounceIn 1s ease-in-out; /* Bounce-in effect on load */
+        }
+    </style>
+</head>
+<body>
+    <!-- Video 1 -->
+    <div class="video-container">
+        <img src="img1.jpg" class="placeholder" alt="Video 1 Placeholder">
+        <video id="video1" class="video" muted>
+            <source src="videoplayback.mp4" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+        <div class="video-title">Kids Prayer</div>
+    </div>
+
+    <!-- Video 2 -->
+    <div class="video-container">
+        <img src="img2.jpg" class="placeholder" alt="Video 2 Placeholder">
+        <video id="video2" class="video" muted>
+            <source src="True Champion (For Kids in Gujarati).mp4" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+        <div class="video-title">True Champion</div>
+    </div>
+
+    <!-- Video 3 -->
+    <div class="video-container">
+        <img src="img3.jpg" class="placeholder" alt="Video 3 Placeholder">
+        <video id="video3" class="video" muted>
+            <source src="Sulking…Benefit or Loss_ (For Kids in Gujarati).mp4" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+        <div class="video-title">Sulinkg...Benefit or Loss??</div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const videos = document.querySelectorAll('.video');
+            const placeholders = document.querySelectorAll('.placeholder');
+            let isVideoPlaying = new Array(videos.length).fill(false);
+
+            videos.forEach((video, index) => {
+                const placeholder = placeholders[index];
+
+                // Play video on hover (muted)
+                video.parentElement.addEventListener('mouseover', () => {
+                    if (!isVideoPlaying[index]) {
+                        video.muted = true; // Ensure video is muted on hover
+                        video.play();
+                    }
+                });
+
+                // Pause video on mouse out
+                video.parentElement.addEventListener('mouseout', () => {
+                    if (!isVideoPlaying[index]) {
+                        video.pause();
+                        video.currentTime = 0; // Optional: Reset video to start
+                    }
+                });
+
+                // Click on video to toggle play/pause and enter fullscreen
+                video.addEventListener('click', () => {
+                    if (video.paused) {
+                        video.muted = false; // Unmute video on click
+                        video.play();
+                        isVideoPlaying[index] = true;
+                    } else {
+                        video.pause();
+                        isVideoPlaying[index] = false;
+                    }
+
+                    // Toggle fullscreen
+                    if (!document.fullscreenElement) {
+                        video.requestFullscreen().catch(err => {
+                            console.log("Error attempting to enable full-screen mode:", err);
+                        });
+                    } else {
+                        document.exitFullscreen();
+                    }
+                });
+
+                // Click on placeholder to start video
+                placeholder.addEventListener('click', () => {
+                    video.currentTime = 0; // Start from beginning
+                    video.muted = false; // Unmute video
+                    video.play();
+                    isVideoPlaying[index] = true;
+                    placeholder.style.opacity = 0; // Hide placeholder
+                });
+            });
+
+            // Handle fullscreen change to stop video and audio
+            document.addEventListener('fullscreenchange', () => {
+                if (!document.fullscreenElement) {
+                    videos.forEach((video, index) => {
+                        video.pause();
+                        video.currentTime = 0; // Reset video to start
+                        video.muted = true; // Ensure video is muted
+                        isVideoPlaying[index] = false;
+                    });
+                }
+            });
+
+            // Ensure videos pause when user clicks elsewhere
+            document.addEventListener('click', (event) => {
+                if (![...videos].some(video => video.contains(event.target)) &&
+                    ![...placeholders].some(placeholder => placeholder.contains(event.target))) {
+                    videos.forEach((video, index) => {
+                        video.pause();
+                        isVideoPlaying[index] = false;
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
