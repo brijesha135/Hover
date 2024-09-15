@@ -29,6 +29,8 @@
             overflow: hidden; 
             box-shadow: 0 8px 15px rgba(0, 0, 0, 0.4); 
             transition: transform 0.3s ease, box-shadow 0.3s ease;
+            background-size: cover;
+            background-position: center;
         }
 
         .video-container:hover {
@@ -47,22 +49,6 @@
 
         .video-container:hover iframe {
             opacity: 1; 
-            transform: scale(1.05); 
-        }
-
-        .placeholder {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            cursor: pointer;
-            transition: opacity 0.3s, transform 0.3s;
-        }
-
-        .video-container:hover .placeholder {
-            opacity: 0;
             transform: scale(1.05); 
         }
 
@@ -98,39 +84,31 @@
     </style>
 </head>
 <body>
-    <div class="video-container" data-video-id="86Ucs-Lh5u4">
-        <img src="your-placeholder-image.jpg" class="placeholder" alt="Video 1 Placeholder">
+    <div class="video-container" data-video-id="86Ucs-Lh5u4" data-thumbnail="https://img.youtube.com/vi/86Ucs-Lh5u4/maxresdefault.jpg">
         <iframe id="video1" src="https://www.youtube.com/embed/86Ucs-Lh5u4?enablejsapi=1&autoplay=1&mute=1" allowfullscreen></iframe>
         <div class="video-title">Kids Prayer</div>
     </div>
 
-    <div class="video-container" data-video-id="Zn32HaXU2RQ">
-        <img src="your-placeholder-image.jpg" class="placeholder" alt="Video 2 Placeholder">
+    <div class="video-container" data-video-id="Zn32HaXU2RQ" data-thumbnail="https://img.youtube.com/vi/Zn32HaXU2RQ/maxresdefault.jpg">
         <iframe id="video2" src="https://www.youtube.com/embed/Zn32HaXU2RQ?enablejsapi=1&autoplay=1&mute=1" allowfullscreen></iframe>
         <div class="video-title">Video 2 Title</div>
     </div>
 
-    <div class="video-container" data-video-id="1DF3sdaRXJk">
-        <img src="your-placeholder-image.jpg" class="placeholder" alt="Video 3 Placeholder">
-        <iframe id="video3" src="https://www.youtube.com/embed/1DF3sdaRXJk?enablejsapi=1&autoplay=1&mute=1" allowfullscreen></iframe>
+    <div class="video-container" data-video-id="pWBOj1TD4QM" data-thumbnail="https://img.youtube.com/vi/pWBOj1TD4QM/maxresdefault.jpg">
+        <iframe id="video3" src="https://www.youtube.com/embed/pWBOj1TD4QM?enablejsapi=1&autoplay=1&mute=1" allowfullscreen></iframe>
         <div class="video-title">Video 3 Title</div>
     </div>
 
-    <div class="video-container" data-video-id="XbmoBLbVx9I">
-        <img src="your-placeholder-image.jpg" class="placeholder" alt="Video 4 Placeholder">
+    <div class="video-container" data-video-id="XbmoBLbVx9I" data-thumbnail="https://img.youtube.com/vi/XbmoBLbVx9I/maxresdefault.jpg">
         <iframe id="video4" src="https://www.youtube.com/embed/XbmoBLbVx9I?enablejsapi=1&autoplay=1&mute=1" allowfullscreen></iframe>
         <div class="video-title">Video 4 Title</div>
     </div>
 
-    <div class="video-container" data-video-id="hz-DoTI5-KE">
-        <img src="your-placeholder-image.jpg" class="placeholder" alt="Video 5 Placeholder">
-        <iframe id="video5" src="https://www.youtube.com/embed/hz-DoTI5-KE?enablejsapi=1&autoplay=1&mute=1" allowfullscreen></iframe>
-        <div class="video-title">Video 5 Title</div>
-    </div>
-
+    
     <script src="https://www.youtube.com/iframe_api"></script>
     <script>
         let players = [];
+        let hoveredPlayer = null;
 
         function onYouTubeIframeAPIReady() {
             const iframes = document.querySelectorAll('iframe');
@@ -149,18 +127,24 @@
             const containers = document.querySelectorAll('.video-container');
             containers.forEach((container, index) => {
                 const iframe = container.querySelector('iframe');
-                const placeholder = container.querySelector('.placeholder');
                 const player = players[index];
 
+                // Set thumbnail as background image
+                const thumbnailUrl = container.getAttribute('data-thumbnail');
+                container.style.backgroundImage = `url(${thumbnailUrl})`;
+
                 container.addEventListener('mouseover', () => {
+                    hoveredPlayer = player;
                     if (player) {
                         player.playVideo();
                     }
                 });
 
                 container.addEventListener('mouseout', () => {
-                    if (player) {
-                        player.pauseVideo();
+                    if (hoveredPlayer !== player) {
+                        if (player) {
+                            player.pauseVideo();
+                        }
                     }
                 });
 
@@ -175,30 +159,26 @@
                         player.playVideo();
                     }
                 });
-
-                placeholder.addEventListener('click', () => {
-                    if (player) {
-                        player.playVideo();
-                        player.unMute();
-                        placeholder.style.opacity = 0; 
-                    }
-                });
             });
 
             document.addEventListener('fullscreenchange', () => {
                 if (!document.fullscreenElement) {
-                    players.forEach(player => {
-                        if (player) {
-                            player.pauseVideo();
-                        }
-                    });
+                    if (hoveredPlayer) {
+                        hoveredPlayer.playVideo();
+                    } else {
+                        players.forEach(player => {
+                            if (player) {
+                                player.pauseVideo();
+                            }
+                        });
+                    }
                 }
             });
 
             document.addEventListener('click', (event) => {
                 if (![...containers].some(container => container.contains(event.target))) {
                     players.forEach(player => {
-                        if (player) {
+                        if (player !== hoveredPlayer) {
                             player.pauseVideo();
                         }
                     });
