@@ -34,6 +34,26 @@
             color: #fff;
             text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.7);
             margin: 0;
+            position: relative;
+            display: inline-block;
+        }
+
+        .main-title::after {
+            content: '';
+            display: block;
+            height: 4px;
+            width: 60%;
+            background: linear-gradient(90deg, #ff6f61, #d77f8e);
+            position: absolute;
+            bottom: -10px; /* Adjust spacing from text */
+            left: 50%;
+            transform: translateX(-50%);
+            border-radius: 2px;
+        }
+
+        .main-title:hover::after {
+            background: linear-gradient(90deg, #d77f8e, #ff6f61);
+            transform: translateX(-50%) scaleX(1.2); /* Slightly scale on hover */
         }
 
         .video-container {
@@ -49,6 +69,9 @@
             transition: transform 0.3s ease, box-shadow 0.3s ease;
             background-size: cover;
             background-position: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
         }
 
         .video-container:hover {
@@ -63,6 +86,9 @@
             cursor: pointer;
             transition: opacity 0.3s, transform 0.3s;
             opacity: 0;
+            position: absolute;
+            top: 0;
+            left: 0;
         }
 
         .video-container:hover iframe {
@@ -70,9 +96,9 @@
             transform: scale(1.05); 
         }
 
-        .video-title {
+        .video-heading {
             position: absolute;
-            bottom: -40px; /* Moves title outside the frame */
+            bottom: 0;
             left: 0;
             width: 100%;
             padding: 10px;
@@ -81,36 +107,14 @@
             text-align: center;
             font-size: 18px;
             font-weight: bold;
-            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8); 
-            transition: background 0.3s; 
-            z-index: 1;
-        }
-
-        .video-container:hover .video-title {
-            background: rgba(0, 0, 0, 0.5);
-        }
-
-        .video-heading {
-            position: absolute;
-            top: 10px;
-            left: 0;
-            width: 100%;
-            padding: 5px;
-            background: rgba(0, 0, 0, 0.7);
-            color: #fff;
-            text-align: center;
-            font-size: 16px;
-            font-weight: bold;
             text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
-            transition: background 0.3s;
+            transition: opacity 0.3s;
             z-index: 1;
-            opacity: 0;
-            transition: opacity 0.3s ease;
+            opacity: 1; /* Visible by default */
         }
 
-        .video-container:hover .video-heading {
-            opacity: 1;
-            background: rgba(0, 0, 0, 0.5);
+        .video-container.active .video-heading {
+            opacity: 0; /* Hide when video is active */
         }
 
         @keyframes bounceIn {
@@ -126,37 +130,33 @@
 </head>
 <body>
     <div class="title-container">
-        <div class="main-title">KIDS WORLD</div>
+        <div class="main-title">KID'S WORLD</div>
     </div>
 
     <div class="video-container" data-video-id="86Ucs-Lh5u4" data-thumbnail="https://img.youtube.com/vi/86Ucs-Lh5u4/maxresdefault.jpg">
         <iframe id="video1" src="https://www.youtube.com/embed/86Ucs-Lh5u4?enablejsapi=1&autoplay=1&mute=1" allowfullscreen></iframe>
-        <div class="video-title">Kids Prayer</div>
         <div class="video-heading">Inspiring Moments of Faith</div>
     </div>
 
     <div class="video-container" data-video-id="Zn32HaXU2RQ" data-thumbnail="https://img.youtube.com/vi/Zn32HaXU2RQ/maxresdefault.jpg">
         <iframe id="video2" src="https://www.youtube.com/embed/Zn32HaXU2RQ?enablejsapi=1&autoplay=1&mute=1" allowfullscreen></iframe>
-        <div class="video-title">Learning Fun</div>
-        <div class="video-heading">Educational Adventures Await!</div>
+        <div class="video-heading">Educational Adventures Await</div>
     </div>
 
     <div class="video-container" data-video-id="pWBOj1TD4QM" data-thumbnail="https://img.youtube.com/vi/pWBOj1TD4QM/maxresdefault.jpg">
         <iframe id="video3" src="https://www.youtube.com/embed/pWBOj1TD4QM?enablejsapi=1&autoplay=1&mute=1" allowfullscreen></iframe>
-        <div class="video-title">Summer Camp</div>
         <div class="video-heading">Creative Learning Experiences</div>
     </div>
 
     <div class="video-container" data-video-id="XbmoBLbVx9I" data-thumbnail="https://img.youtube.com/vi/XbmoBLbVx9I/maxresdefault.jpg">
         <iframe id="video4" src="https://www.youtube.com/embed/XbmoBLbVx9I?enablejsapi=1&autoplay=1&mute=1" allowfullscreen></iframe>
-        <div class="video-title">Video 4 Title</div>
-        <div class="video-heading">Exciting Camp Activities!</div>
+        <div class="video-heading">Exciting Camp Activities</div>
     </div>
 
     <script src="https://www.youtube.com/iframe_api"></script>
     <script>
         let players = [];
-        let hoveredPlayer = null;
+        let activePlayer = null;
 
         function onYouTubeIframeAPIReady() {
             const iframes = document.querySelectorAll('iframe');
@@ -182,55 +182,71 @@
                 container.style.backgroundImage = `url(${thumbnailUrl})`;
 
                 container.addEventListener('mouseover', () => {
-                    hoveredPlayer = player;
+                    if (activePlayer && activePlayer !== player) {
+                        activePlayer.pauseVideo();
+                        activePlayer.seekTo(0); // Ensure previous video starts from the beginning
+                    }
                     if (player) {
-                        player.playVideo();
+                        player.seekTo(0); // Reset current video to start
+                        player.playVideo(); // Play current video
+                        activePlayer = player;
+                        container.classList.add('active');
                     }
                 });
 
                 container.addEventListener('mouseout', () => {
-                    if (hoveredPlayer !== player) {
+                    if (activePlayer === player) {
                         if (player) {
-                            player.pauseVideo();
+                            player.pauseVideo(); // Pause video on mouse out
                         }
+                        container.classList.remove('active');
                     }
                 });
 
                 iframe.addEventListener('click', () => {
                     if (player) {
-                        if (!document.fullscreenElement) {
-                            iframe.requestFullscreen().catch(err => {
-                                console.log("Error attempting to enable full-screen mode:", err);
-                            });
-                        }
                         player.unMute();
-                        player.playVideo();
+                        player.playVideo(); // Ensure video plays on click
+                        container.classList.add('active');
+                        activePlayer = player;
+
+                        // Request fullscreen mode immediately on click
+                        if (iframe.requestFullscreen) {
+                            iframe.requestFullscreen();
+                        } else if (iframe.mozRequestFullScreen) { // Firefox
+                            iframe.mozRequestFullScreen();
+                        } else if (iframe.webkitRequestFullscreen) { // Chrome, Safari and Opera
+                            iframe.webkitRequestFullscreen();
+                        } else if (iframe.msRequestFullscreen) { // IE/Edge
+                            iframe.msRequestFullscreen();
+                        }
                     }
                 });
-            });
 
-            document.addEventListener('fullscreenchange', () => {
-                if (!document.fullscreenElement) {
-                    if (hoveredPlayer) {
-                        hoveredPlayer.playVideo();
-                    } else {
+                // Additional logic to handle fullscreen behavior
+                document.addEventListener('fullscreenchange', () => {
+                    if (!document.fullscreenElement) {
+                        if (activePlayer) {
+                            activePlayer.playVideo(); // Resume video if fullscreen mode is exited
+                        } else {
+                            players.forEach(player => {
+                                if (player) {
+                                    player.pauseVideo();
+                                }
+                            });
+                        }
+                    }
+                });
+
+                document.addEventListener('click', (event) => {
+                    if (![...containers].some(container => container.contains(event.target))) {
                         players.forEach(player => {
-                            if (player) {
+                            if (player !== activePlayer) {
                                 player.pauseVideo();
                             }
                         });
                     }
-                }
-            });
-
-            document.addEventListener('click', (event) => {
-                if (![...containers].some(container => container.contains(event.target))) {
-                    players.forEach(player => {
-                        if (player !== hoveredPlayer) {
-                            player.pauseVideo();
-                        }
-                    });
-                }
+                });
             });
         });
     </script>
