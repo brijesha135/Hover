@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Car Parking Game</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: #87CEFA; /* Sky blue background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: Arial, sans-serif;
+        }
+        #gameCanvas {
+            background: url('https://images.unsplash.com/photo-1519216970-3d8da58fcb0d') no-repeat center center;
+            background-size: cover;
+            border: 5px solid #333;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            position: relative;
+        }
+        #message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 36px;
+            color: #fff;
+            background: rgba(0, 128, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        .hidden {
+            display: none;
+        }
+        .level-info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 18px;
+            color: #fff;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+        }
+        #timer {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 18px;
+            color: #fff;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <div id="message" class="hidden"></div>
+    <div id="levelInfo" class="level-info">Level: 1</div>
+    <div id="timer"></div>
+    <script>// Constants
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const message = document.getElementById('message');
+        const levelInfo = document.getElementById('levelInfo');
+        const timerDisplay = document.getElementById('timer');
+        
+        const carWidth = 80;
+        const carHeight = 50;
+        const parkWidth = 100;
+        const parkHeight = 60;
+        const speed = 10;
+        const obstacleFallbackColor = '#FF5722'; // Default color if obstacle image fails to load
+        let currentLevel = 0;
+        let selectedCarIndex = null;
+        let startTime;
+        let timerInterval;
+        
+        // Define levels with increasing difficulty and distinct design
+        const levels = [
+            {
+                cars: [{ x: 100, y: 100 }],
+                parks: [{ x: 600, y: 400 }],
+                obstacles: []
+            },
+            {
+                cars: [
+                    { x: 100, y: 100 },
+                    { x: 200, y: 100 }
+                ],
+                parks: [
+                    { x: 600, y: 400 },
+                    { x: 500, y: 300 }
+                ],
+                obstacles: [
+                    { x: 300, y: 200, width: 50, height: 50 }
+                ]
+            },
+            {
+                cars: [
+                    { x: 100, y: 100 },
+                    { x: 200, y: 100 },
+                    { x: 300, y: 100 }
+                ],
+                parks: [
+                    { x: 600, y: 400 },
+                    { x: 500, y: 300 },
+                    { x: 400, y: 200 }
+                ],
+                obstacles: [
+                    { x: 300, y: 200, width: 50, height: 50 },
+                    { x: 400, y: 300, width: 70, height: 70 },
+                    { x: 200, y: 250, width: 60, height: 60 }
+                ]
+            }
+            
+            // Add more levels with unique designs and challenges here
+        ];
+        const carImageSrc = 'https://img.icons8.com/ios/452/car.png'; // Single car image for all cars
+        const carImagesInstances = [carImageSrc].map(src => {
+            const img = new Image();
+            img.src = src;
+            img.onerror = () => {
+                console.error(`Failed to load image: ${src}`);
+                // Fallback to a blank image
+                img.src = ''; 
+            };
+            return img;
+        });
+        
+        const obstacleImageSrcs = [
+            'https://img.icons8.com/ios/452/stop-sign.png',
+            'https://img.icons8.com/ios/452/warning.png'
+        ];
+        
+        const obstacleImagesInstances = obstacleImageSrcs.map(src => {
+            const img = new Image();
+            img.src = src;
+            img.onerror = () => {
+                console.error(`Failed to load image: ${src}`);
+                // Fallback to a blank image or a color
+                img.src = ''; 
+            };
+            return img;
+        });
+        
+        let imagesLoaded = 0;
+        carImagesInstances.forEach(img => {
+            img.onload = () => {
+                imagesLoaded++;
+                if (imagesLoaded === carImagesInstances.length + obstacleImagesInstances.length) {
+                    drawGame(); // Draw game once all images are loaded
+                    startTimer();
+                }
+            };
+        });
+        
+        obstacleImagesInstances.forEach(img => {
+            img.onload = () => {
+                imagesLoaded++;
+                if (imagesLoaded === carImagesInstances.length + obstacleImagesInstances.length) {
+                    drawGame(); // Draw game once all images are loaded
+                    startTimer();
+                }
+            };
+        });
+        
+        function drawCars() {
+            if (!levels[currentLevel]) return; // Check if the current level is valid
+        
+            levels[currentLevel].cars.forEach((car, index) => {
+                const img = carImagesInstances[0]; // Single car image for all cars
+                if (img.complete) {
+                    ctx.drawImage(img, car.x, car.y, carWidth, carHeight);
+                } else {
+                    console.error('Car image not loaded:', img.src);
+                }
+            });
+        }
+        
+        function drawParkingSpots() {
+            if (!levels[currentLevel]) return; // Check if the current level is valid
+        
+            levels[currentLevel].parks.forEach(park => {
+                ctx.fillStyle = '#4CAF50';
+                ctx.fillRect(park.x, park.y, parkWidth, parkHeight);
+                ctx.strokeStyle = '#388E3C';
+                ctx.lineWidth = 3;
+                ctx.strokeRect(park.x, park.y, parkWidth, parkHeight);
+            });
+        }
+        
+        function drawObstacles() {
+            if (!levels[currentLevel]) return; // Check if the current level is valid
+        
+            levels[currentLevel].obstacles.forEach((obstacle, index) => {
+                const img = obstacleImagesInstances[index % obstacleImagesInstances.length];
+                if (img.complete && img.naturalHeight > 0 && img.naturalWidth > 0) {
+                    ctx.drawImage(img, obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+                } else {
+                    console.error('Obstacle image not loaded or broken:', img.src);
+                    // Fallback to color if image fails to load
+                    ctx.fillStyle = obstacleFallbackColor;
+                    ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+                }
+            });
+        }
+        
+        
+        function detectCollision(car, obstacle) {
+            return car.x < obstacle.x + obstacle.width &&
+                   car.x + carWidth > obstacle.x &&
+                   car.y < obstacle.y + obstacle.height &&
+                   car.y + carHeight > obstacle.y;
+        }
+        
+        function checkWin() {
+            if (!levels[currentLevel]) return; // Check if the current level is valid
+        
+            // Check if all cars are parked
+            const allCarsParked = levels[currentLevel].cars.every(car => {
+                return levels[currentLevel].parks.some(park => {
+                    const isParked = car.x < park.x + parkWidth &&
+                                     car.x + carWidth > park.x &&
+                                     car.y < park.y + parkHeight &&
+                                     car.y + carHeight > park.y;
+                    if (isParked) {
+                        console.log(`Car at (${car.x}, ${car.y}) is parked in the spot at (${park.x}, ${park.y})`);
+                    }
+                    return isParked;
+                });
+            });
+        
+            // Log details for debugging
+            if (!allCarsParked) {
+                console.log("Cars are not all parked yet.");
+                levels[currentLevel].cars.forEach((car, index) => {
+                    console.log(`Car ${index}: (${car.x}, ${car.y})`);
+                });
+                levels[currentLevel].parks.forEach((park, index) => {
+                    console.log(`Park ${index}: (${park.x}, ${park.y})`);
+                });
+            }
+        
+            // Display win message if all cars are parked
+            if (allCarsParked) {
+                message.innerText = 'You Win!';
+                message.classList.remove('hidden');
+                stopTimer();
+                console.log('Level completed. Moving to next level.');
+                setTimeout(nextLevel, 2000); // Go to next level after 2 seconds
+            }
+        }
+        
+        function moveCar(e) {
+            if (selectedCarIndex !== null && levels[currentLevel]) {
+                const car = levels[currentLevel].cars[selectedCarIndex];
+                let prevX = car.x;
+                let prevY = car.y;
+        
+                switch (e.key) {
+                    case 'ArrowUp':
+                        car.y = Math.max(0, car.y - speed);
+                        break;
+                    case 'ArrowDown':
+                        car.y = Math.min(canvas.height - carHeight, car.y + speed);
+                        break;
+                    case 'ArrowLeft':
+                        car.x = Math.max(0, car.x - speed);
+                        break;
+                    case 'ArrowRight':
+                        car.x = Math.min(canvas.width - carWidth, car.x + speed);
+                        break;
+                }
+        
+                // Check for collisions with obstacles
+                for (let obstacle of levels[currentLevel].obstacles) {
+                    if (detectCollision(car, obstacle)) {
+                        car.x = prevX;
+                        car.y = prevY;
+                        break;
+                    }
+                }
+        
+                drawGame();
+            }
+        }
+        
+        function selectCar(e) {
+            if (!levels[currentLevel]) return; // Check if the current level is valid
+        
+            const mouseX = e.offsetX;
+            const mouseY = e.offsetY;
+            selectedCarIndex = null;
+            levels[currentLevel].cars.forEach((car, index) => {
+                if (mouseX >= car.x && mouseX <= car.x + carWidth &&
+                    mouseY >= car.y && mouseY <= car.y + carHeight) {
+                    selectedCarIndex = index;
+                }
+            });
+        }
+        
+        function drawGame() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawParkingSpots();
+            drawCars();
+            drawObstacles();
+            checkWin();
+        }
+        
+        function nextLevel() {
+            if (currentLevel < levels.length - 1) {
+                currentLevel++;
+                levelInfo.innerText = `Level: ${currentLevel + 1}`;
+                message.classList.add('hidden');
+                selectedCarIndex = null; // Deselect car when moving to the next level
+                drawGame();
+                startTimer();
+            } else {
+                message.innerText = 'Congratulations! You Completed All Levels!';
+                console.log('All levels completed.');
+                setTimeout(() => message.classList.add('hidden'), 3000);
+            }
+        }
+        
+        function startTimer() {
+            startTime = Date.now();
+            timerInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                timerDisplay.innerText = `Time: ${elapsed}s`;
+            }, 1000);
+        }
+        
+        function stopTimer() {
+            clearInterval(timerInterval);
+        }
+        
+        // Event listeners
+        canvas.addEventListener('click', selectCar);
+        document.addEventListener('keydown', moveCar);
+        
+        // Initialize game
+        carImagesInstances[0].onload = () => {
+            drawGame();
+            startTimer();
+        };
+        </script>
+</body>
+</html>
