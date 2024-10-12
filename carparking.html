@@ -3,283 +3,232 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Advanced Car Parking Game</title>
     <style>
         body {
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            background: #87CEFA; /* Sky blue background */
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
             font-family: Arial, sans-serif;
-        }
-        #gameCanvas {
-            background: url('https://cdn-icons-png.flaticon.com/512/608/608755.png') no-repeat center center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-image: url('https://cdn-icons-png.flaticon.com/512/608/608755.png');
             background-size: cover;
-            border: 5px solid #333;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            color: white;
+        }
+
+        #game-board {
             position: relative;
+            width: 400px; /* Board size */
+            height: 400px; /* Board height */
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(8, 1fr);
+            margin-bottom: 20px;
+            background-color: transparent;
         }
-        #message {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 36px;
-            color: #fff;
-            background: rgba(0, 128, 0, 0.8);
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+
+        .car {
+            background-image: url('https://cdn-icons-png.flaticon.com/512/741/741407.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+            transform: scale(1.25);
         }
-        .hidden {
-            display: none;
+
+        .block {
+            background-image: url('https://cdn-icons-png.flaticon.com/512/1255/1255863.png');
+            background-size: cover;
+            opacity: 0.8; /* Adjusted opacity for better visibility */
         }
-        .level-info, #timer {
-            position: absolute;
-            top: 10px;
-            font-size: 18px;
-            color: #fff;
-            background: rgba(0, 0, 0, 0.6);
-            padding: 10px;
-            border-radius: 5px;
-            box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+
+        .exit {
+            background-image: url('https://img.icons8.com/ios-filled/50/000000/parking.png');
+            background-size: cover;
         }
-        .level-info {
-            left: 10px;
+
+        .winning-area {
+            background-image: url('https://img.icons8.com/ios-filled/50/000000/parking.png');
+            background-size: cover;
+            grid-column: 7 / span 2;
+            grid-row: 7 / span 2;
+            opacity: 0;
         }
-        #timer {
-            right: 10px;
+
+        #score {
+            margin-top: 20px;
+            font-size: 20px;
         }
     </style>
 </head>
 <body>
-    <canvas id="gameCanvas" width="800" height="600"></canvas>
-    <div id="message" class="hidden"></div>
-    <div id="levelInfo" class="level-info">Level: 1</div>
-    <div id="timer"></div>
+    <div id="game-board"></div>
+    <div id="score">Moves: <span id="move-count">0</span></div>
+    <button id="restart-button">Restart Level</button>
+
     <script>
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        const message = document.getElementById('message');
-        const levelInfo = document.getElementById('levelInfo');
-        const timerDisplay = document.getElementById('timer');
-        
-        const carWidth = 80;
-        const carHeight = 50;
-        const parkWidth = 100;
-        const parkHeight = 60;
-        const speed = 10;
-        const obstacleFallbackColor = '#FF5722';
+        const gameBoard = document.getElementById('game-board');
+        const moveCountElement = document.getElementById('move-count');
+        const boardSize = 8; 
+        let cars = [];
+        let selectedCarIndex = null; 
+        let moveCount = 0;
         let currentLevel = 0;
-        let selectedCarIndex = null;
-        let startTime;
-        let timerInterval;
 
         const levels = [
-            {
-                cars: [{ x: 100, y: 100 }],
-                parks: [{ x: 600, y: 400 }],
-                obstacles: []
-            },
-            {
-                cars: [{ x: 100, y: 100 }, { x: 200, y: 100 }],
-                parks: [{ x: 600, y: 400 }, { x: 500, y: 300 }],
-                obstacles: [{ x: 300, y: 200, width: 50, height: 50 }]
-            },
-            {
-                cars: [{ x: 100, y: 100 }, { x: 200, y: 100 }, { x: 300, y: 100 }],
-                parks: [{ x: 600, y: 400 }, { x: 500, y: 300 }, { x: 400, y: 200 }],
-                obstacles: [
-                    { x: 300, y: 200, width: 50, height: 50 },
-                    { x: 400, y: 300, width: 70, height: 70 },
-                    { x: 200, y: 250, width: 60, height: 60 }
-                ]
-            }
+            { exit: { x: 8, y: 8 }, blocks: generateRandomBlocks(3), carPositions: [{ x: 1, y: 1 }] },
+            { exit: { x: 8, y: 8 }, blocks: generateRandomBlocks(3), carPositions: [{ x: 1, y: 1 }, { x: 1, y: 2 }] },
+            { exit: { x: 8, y: 8 }, blocks: generateRandomBlocks(4), carPositions: [{ x: 1, y: 1 }, { x: 1, y: 2 }, { x: 1, y: 3 }] },
+            { exit: { x: 8, y: 8 }, blocks: generateRandomBlocks(4), carPositions: [{ x: 1, y: 1 }, { x: 1, y: 2 }, { x: 1, y: 3 }, { x: 1, y: 4 }] }
         ];
 
-        const carImageSrc = 'https://cdn-icons-png.flaticon.com/512/741/741407.png';
-        const obstacleImageSrcs = [
-            'https://cdn-icons-png.flaticon.com/512/1255/1255863.png',
-            'https://cdn-icons-png.flaticon.com/512/1255/1255863.png'
-        ];
-
-        function loadImage(src) {
-            return new Promise((resolve, reject) => {
-                const img = new Image();
-                img.src = src;
-                img.onload = () => resolve(img);
-                img.onerror = () => reject(new Error(`Failed to load image: ${src}`));
-            });
-        }
-
-        Promise.all([
-            loadImage(carImageSrc),
-            ...obstacleImageSrcs.map(loadImage)
-        ]).then(([carImg, ...obstacleImgs]) => {
-            carImagesInstances = [carImg];
-            obstacleImagesInstances = obstacleImgs;
-            drawGame();
-            startTimer();
-        }).catch(error => {
-            console.error(error);
-        });
-
-        function drawCars() {
-            if (!levels[currentLevel]) return;
-
-            levels[currentLevel].cars.forEach(car => {
-                const img = carImagesInstances[0];
-                if (img.complete) {
-                    ctx.drawImage(img, car.x, car.y, carWidth, carHeight);
-                } else {
-                    console.error('Car image not loaded:', img.src);
+        function generateRandomBlocks(num) {
+            const blocks = [];
+            while (blocks.length < num) {
+                const x = Math.floor(Math.random() * (boardSize - 2)) + 1; 
+                const y = Math.floor(Math.random() * (boardSize - 2)) + 1; 
+                if (!blocks.some(block => block.x === x && block.y === y) && 
+                    !cars.some(car => car.x === x && car.y === y)) { // Ensure no overlap with cars
+                    blocks.push({ x, y });
                 }
-            });
-        }
-
-        function drawParkingSpots() {
-            if (!levels[currentLevel]) return;
-
-            levels[currentLevel].parks.forEach(park => {
-                ctx.fillStyle = '#4CAF50';
-                ctx.fillRect(park.x, park.y, parkWidth, parkHeight);
-                ctx.strokeStyle = '#388E3C';
-                ctx.lineWidth = 3;
-                ctx.strokeRect(park.x, park.y, parkWidth, parkHeight);
-            });
-        }
-
-        function drawObstacles() {
-            if (!levels[currentLevel]) return;
-
-            levels[currentLevel].obstacles.forEach((obstacle, index) => {
-                const img = obstacleImagesInstances[index % obstacleImagesInstances.length];
-                if (img.complete) {
-                    ctx.drawImage(img, obstacle.x, obstacle.y, obstacle.width, obstacle.height);
-                } else {
-                    console.error('Obstacle image not loaded or broken:', img.src);
-                    ctx.fillStyle = obstacleFallbackColor;
-                    ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
-                }
-            });
-        }
-
-        function detectCollision(car, obstacle) {
-            return car.x < obstacle.x + obstacle.width &&
-                   car.x + carWidth > obstacle.x &&
-                   car.y < obstacle.y + obstacle.height &&
-                   car.y + carHeight > obstacle.y;
-        }
-
-        function checkWin() {
-            if (!levels[currentLevel]) return;
-
-            const allCarsParked = levels[currentLevel].cars.every(car => {
-                return levels[currentLevel].parks.some(park => {
-                    const isParked = car.x < park.x + parkWidth &&
-                                     car.x + carWidth > park.x &&
-                                     car.y < park.y + parkHeight &&
-                                     car.y + carHeight > park.y;
-                    return isParked;
-                });
-            });
-
-            if (allCarsParked) {
-                message.innerText = 'You Win!';
-                message.classList.remove('hidden');
-                stopTimer();
-                setTimeout(nextLevel, 2000);
             }
+            return blocks;
         }
 
-        function moveCar(e) {
-            if (selectedCarIndex !== null && levels[currentLevel]) {
-                const car = levels[currentLevel].cars[selectedCarIndex];
-                let prevX = car.x;
-                let prevY = car.y;
+        function setupBoard() {
+            gameBoard.innerHTML = '';
+            cars = [];
+            moveCount = 0;
+            moveCountElement.textContent = moveCount;
 
-                switch (e.key) {
-                    case 'ArrowUp':
-                        car.y = Math.max(0, car.y - speed);
-                        break;
-                    case 'ArrowDown':
-                        car.y = Math.min(canvas.height - carHeight, car.y + speed);
-                        break;
-                    case 'ArrowLeft':
-                        car.x = Math.max(0, car.x - speed);
-                        break;
-                    case 'ArrowRight':
-                        car.x = Math.min(canvas.width - carWidth, car.x + speed);
-                        break;
+            const level = levels[currentLevel];
+
+            level.blocks.forEach(block => {
+                const blockDiv = document.createElement('div');
+                blockDiv.className = 'block';
+                blockDiv.style.gridColumn = block.x;
+                blockDiv.style.gridRow = block.y;
+                gameBoard.appendChild(blockDiv);
+            });
+
+            const exitDiv = document.createElement('div');
+            exitDiv.className = 'exit';
+            exitDiv.style.gridColumn = level.exit.x;
+            exitDiv.style.gridRow = level.exit.y;
+            gameBoard.appendChild(exitDiv);
+
+            const winningArea = document.createElement('div');
+            winningArea.className = 'winning-area';
+            gameBoard.appendChild(winningArea);
+
+            level.carPositions.forEach(carPosition => {
+                cars.push(carPosition);
+                createCar(carPosition);
+            });
+
+            updateCarPosition(cars);
+        }
+
+        function createCar(position) {
+            const carDiv = document.createElement('div');
+            carDiv.className = 'car';
+            carDiv.style.gridColumn = position.x;
+            carDiv.style.gridRow = position.y;
+            carDiv.addEventListener('click', () => selectCar(cars.indexOf(position)));
+            gameBoard.appendChild(carDiv);
+        }
+
+        function selectCar(index) {
+            selectedCarIndex = index; 
+            const carElements = document.querySelectorAll('.car');
+            carElements.forEach((carElement, i) => {
+                carElement.style.border = (i === selectedCarIndex) ? '2px solid yellow' : 'none'; 
+            });
+        }
+
+        function moveCar(newX, newY) {
+            if (selectedCarIndex === null) return;
+
+            const level = levels[currentLevel];
+            const carIndex = selectedCarIndex;
+
+            if (newX < 1 || newY < 1 || newX > boardSize || newY > boardSize) return;
+
+            for (const block of level.blocks) {
+                if (block.x === newX && block.y === newY) {
+                    return; 
                 }
-
-                for (let obstacle of levels[currentLevel].obstacles) {
-                    if (detectCollision(car, obstacle)) {
-                        car.x = prevX;
-                        car.y = prevY;
-                        break;
-                    }
-                }
-
-                drawGame();
             }
+
+            for (let i = 0; i < cars.length; i++) {
+                if (i !== carIndex && cars[i].x === newX && cars[i].y === newY) {
+                    return; 
+                }
+            }
+
+            cars[carIndex] = { x: newX, y: newY };
+            updateCarPosition(cars);
+            moveCount++;
+            moveCountElement.textContent = moveCount;
+
+            checkWinCondition();
         }
 
-        function selectCar(e) {
-            if (!levels[currentLevel]) return;
-
-            const mouseX = e.offsetX;
-            const mouseY = e.offsetY;
-            selectedCarIndex = null;
-            levels[currentLevel].cars.forEach((car, index) => {
-                if (mouseX >= car.x && mouseX <= car.x + carWidth &&
-                    mouseY >= car.y && mouseY <= car.y + carHeight) {
-                    selectedCarIndex = index;
+        function updateCarPosition(cars) {
+            const carElements = document.querySelectorAll('.car');
+            carElements.forEach((carElement, index) => {
+                if (index < cars.length) {
+                    carElement.style.gridColumn = cars[index].x;
+                    carElement.style.gridRow = cars[index].y;
                 }
             });
         }
 
-        function drawGame() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            drawParkingSpots();
-            drawCars();
-            drawObstacles();
-            checkWin();
+        function checkWinCondition() {
+            const level = levels[currentLevel];
+            const parkedCars = cars.filter(pos => 
+                (pos.x >= 7 && pos.x <= 8) && (pos.y >= 7 && pos.y <= 8)
+            );
+
+            if (parkedCars.length === cars.length) {
+                alert(`You've parked all cars in ${moveCount} moves!`);
+                nextLevel();
+            }
         }
 
         function nextLevel() {
             if (currentLevel < levels.length - 1) {
                 currentLevel++;
-                levelInfo.innerText = `Level: ${currentLevel + 1}`;
-                message.classList.add('hidden');
-                selectedCarIndex = null;
-                drawGame();
-                startTimer();
             } else {
-                message.innerText = 'Congratulations! You Completed All Levels!';
-                setTimeout(() => message.classList.add('hidden'), 3000);
+                alert("You've completed all levels! Restarting...");
+                currentLevel = 0; 
             }
+            setupBoard();
         }
 
-        function startTimer() {
-            startTime = Date.now();
-            timerInterval = setInterval(() => {
-                const elapsed = Math.floor((Date.now() - startTime) / 1000);
-                timerDisplay.innerText = `Time: ${elapsed}s`;
-            }, 1000);
-        }
+        document.getElementById('restart-button').addEventListener('click', setupBoard);
 
-        function stopTimer() {
-            clearInterval(timerInterval);
-        }
+        document.addEventListener('keydown', (event) => {
+            if (selectedCarIndex !== null) {
+                const key = event.key;
 
-        canvas.addEventListener('click', selectCar);
-        document.addEventListener('keydown', moveCar);
+                switch (key) {
+                    case 'ArrowUp':
+                        moveCar(cars[selectedCarIndex].x, cars[selectedCarIndex].y - 1);
+                        break;
+                    case 'ArrowDown':
+                        moveCar(cars[selectedCarIndex].x, cars[selectedCarIndex].y + 1);
+                        break;
+                    case 'ArrowLeft':
+                        moveCar(cars[selectedCarIndex].x - 1, cars[selectedCarIndex].y);
+                        break;
+                    case 'ArrowRight':
+                        moveCar(cars[selectedCarIndex].x + 1, cars[selectedCarIndex].y);
+                        break;
+                }
+            }
+        });
+
+        setupBoard();
     </script>
 </body>
 </html>
