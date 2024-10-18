@@ -16,8 +16,8 @@
 
         #game-board {
             position: relative;
-            width: 400px; /* Board size */
-            height: 400px; /* Board height */
+            width: 400px;
+            height: 400px;
             display: grid;
             grid-template-columns: repeat(8, 1fr);
             grid-template-rows: repeat(8, 1fr);
@@ -26,7 +26,6 @@
         }
 
         .car {
-            background-image: url('https://cdn-icons-png.flaticon.com/512/741/741407.png');
             background-size: contain;
             background-repeat: no-repeat;
             width: 100%;
@@ -38,20 +37,12 @@
         .block {
             background-image: url('https://cdn-icons-png.flaticon.com/512/1255/1255863.png');
             background-size: cover;
-            opacity: 0.8; /* Adjusted opacity for better visibility */
+            opacity: 0.8;
         }
 
         .exit {
             background-image: url('https://img.icons8.com/ios-filled/50/000000/parking.png');
             background-size: cover;
-        }
-
-        .winning-area {
-            background-image: url('https://img.icons8.com/ios-filled/50/000000/parking.png');
-            background-size: cover;
-            grid-column: 7 / span 2;
-            grid-row: 7 / span 2;
-            opacity: 0;
         }
 
         #score {
@@ -74,20 +65,32 @@
         let moveCount = 0;
         let currentLevel = 0;
 
-        const levels = [
-            { exit: { x: 8, y: 8 }, blocks: generateRandomBlocks(3), carPositions: [{ x: 1, y: 1 }] },
-            { exit: { x: 8, y: 8 }, blocks: generateRandomBlocks(3), carPositions: [{ x: 1, y: 1 }, { x: 1, y: 2 }] },
-            { exit: { x: 8, y: 8 }, blocks: generateRandomBlocks(4), carPositions: [{ x: 1, y: 1 }, { x: 1, y: 2 }, { x: 1, y: 3 }] },
-            { exit: { x: 8, y: 8 }, blocks: generateRandomBlocks(4), carPositions: [{ x: 1, y: 1 }, { x: 1, y: 2 }, { x: 1, y: 3 }, { x: 1, y: 4 }] }
+        const carImages = [
+            'https://cdn-icons-png.flaticon.com/512/741/741407.png', // Car type 1
+            'https://cdn-icons-png.flaticon.com/512/741/741408.png', // Car type 2
+            'https://cdn-icons-png.flaticon.com/512/741/741409.png', // Car type 3
+            'https://cdn-icons-png.flaticon.com/512/741/741410.png', // Car type 4
+            'https://cdn-icons-png.flaticon.com/512/741/741411.png', // Car type 5
+            'https://cdn-icons-png.flaticon.com/512/741/741412.png', // Car type 6
+            'https://cdn-icons-png.flaticon.com/512/741/741413.png', // Car type 7
+            'https://cdn-icons-png.flaticon.com/512/741/741414.png'  // Car type 8
         ];
 
-        function generateRandomBlocks(num) {
+        const levels = [
+            { exit: { x: 8, y: 8 }, blocks: generateBlocks(2), carPositions: [{ x: 1, y: 1, type: 0 }] },
+            { exit: { x: 8, y: 8 }, blocks: generateBlocks(3), carPositions: [{ x: 1, y: 1, type: 0 }, { x: 1, y: 3, type: 1 }] },
+            { exit: { x: 8, y: 8 }, blocks: generateBlocks(4), carPositions: [{ x: 1, y: 1, type: 0 }, { x: 1, y: 3, type: 1 }, { x: 3, y: 1, type: 2 }] },
+            { exit: { x: 8, y: 8 }, blocks: generateBlocks(5), carPositions: [{ x: 1, y: 1, type: 0 }, { x: 1, y: 3, type: 1 }, { x: 3, y: 1, type: 2 }, { x: 3, y: 3, type: 3 }] },
+            { exit: { x: 8, y: 8 }, blocks: generateBlocks(6), carPositions: [{ x: 1, y: 1, type: 4 }, { x: 1, y: 3, type: 5 }, { x: 3, y: 1, type: 6 }, { x: 3, y: 3, type: 7 }] }
+        ];
+
+        function generateBlocks(num) {
             const blocks = [];
             while (blocks.length < num) {
                 const x = Math.floor(Math.random() * (boardSize - 2)) + 1; 
                 const y = Math.floor(Math.random() * (boardSize - 2)) + 1; 
                 if (!blocks.some(block => block.x === x && block.y === y) && 
-                    !cars.some(car => car.x === x && car.y === y)) { // Ensure no overlap with cars
+                    !cars.some(car => car.x === x && car.y === y)) {
                     blocks.push({ x, y });
                 }
             }
@@ -116,10 +119,6 @@
             exitDiv.style.gridRow = level.exit.y;
             gameBoard.appendChild(exitDiv);
 
-            const winningArea = document.createElement('div');
-            winningArea.className = 'winning-area';
-            gameBoard.appendChild(winningArea);
-
             level.carPositions.forEach(carPosition => {
                 cars.push(carPosition);
                 createCar(carPosition);
@@ -131,6 +130,7 @@
         function createCar(position) {
             const carDiv = document.createElement('div');
             carDiv.className = 'car';
+            carDiv.style.backgroundImage = `url(${carImages[position.type]})`;
             carDiv.style.gridColumn = position.x;
             carDiv.style.gridRow = position.y;
             carDiv.addEventListener('click', () => selectCar(cars.indexOf(position)));
@@ -145,27 +145,37 @@
             });
         }
 
-        function moveCar(newX, newY) {
+        function moveCar(direction) {
             if (selectedCarIndex === null) return;
 
             const level = levels[currentLevel];
             const carIndex = selectedCarIndex;
+            const car = cars[carIndex];
+
+            let newX = car.x;
+            let newY = car.y;
+
+            switch (direction) {
+                case 'up': newY--; break;
+                case 'down': newY++; break;
+                case 'left': newX--; break;
+                case 'right': newX++; break;
+            }
 
             if (newX < 1 || newY < 1 || newX > boardSize || newY > boardSize) return;
 
-            for (const block of level.blocks) {
-                if (block.x === newX && block.y === newY) {
-                    return; 
-                }
+            // Check for blocks
+            if (level.blocks.some(block => block.x === newX && block.y === newY)) {
+                return; 
             }
 
-            for (let i = 0; i < cars.length; i++) {
-                if (i !== carIndex && cars[i].x === newX && cars[i].y === newY) {
-                    return; 
-                }
+            // Check for other cars
+            if (cars.some((c, index) => index !== carIndex && c.x === newX && c.y === newY)) {
+                return; 
             }
 
-            cars[carIndex] = { x: newX, y: newY };
+            // Update car position
+            cars[carIndex] = { ...car, x: newX, y: newY };
             updateCarPosition(cars);
             moveCount++;
             moveCountElement.textContent = moveCount;
@@ -191,18 +201,13 @@
 
             if (parkedCars.length === cars.length) {
                 alert(`You've parked all cars in ${moveCount} moves!`);
-                nextLevel();
-            }
-        }
-
-        function nextLevel() {
-            if (currentLevel < levels.length - 1) {
                 currentLevel++;
-            } else {
-                alert("You've completed all levels! Restarting...");
-                currentLevel = 0; 
+                if (currentLevel < levels.length) {
+                    setupBoard();
+                } else {
+                    alert('Congratulations! You completed all levels!');
+                }
             }
-            setupBoard();
         }
 
         document.getElementById('restart-button').addEventListener('click', setupBoard);
@@ -213,16 +218,16 @@
 
                 switch (key) {
                     case 'ArrowUp':
-                        moveCar(cars[selectedCarIndex].x, cars[selectedCarIndex].y - 1);
+                        moveCar('up');
                         break;
                     case 'ArrowDown':
-                        moveCar(cars[selectedCarIndex].x, cars[selectedCarIndex].y + 1);
+                        moveCar('down');
                         break;
                     case 'ArrowLeft':
-                        moveCar(cars[selectedCarIndex].x - 1, cars[selectedCarIndex].y);
+                        moveCar('left');
                         break;
                     case 'ArrowRight':
-                        moveCar(cars[selectedCarIndex].x + 1, cars[selectedCarIndex].y);
+                        moveCar('right');
                         break;
                 }
             }
