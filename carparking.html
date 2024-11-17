@@ -11,12 +11,13 @@
             align-items: center;
             background-image: url('https://cdn-icons-png.flaticon.com/512/608/608755.png');
             background-size: cover;
-            color: white;
+            color: black;
+            padding-left: 20px;
         }
 
         #game-board {
             position: relative;
-            width: 400px;
+            width: 500px;
             height: 400px;
             display: grid;
             grid-template-columns: repeat(8, 1fr);
@@ -35,24 +36,91 @@
         }
 
         .block {
-            background-image: url('https://cdn-icons-png.flaticon.com/512/1255/1255863.png');
+            background-image: url('https://cdn-icons-png.flaticon.com/512/741/741426.png');
             background-size: cover;
             opacity: 0.8;
         }
 
         .exit {
-            background-image: url('https://img.icons8.com/ios-filled/50/000000/parking.png');
-            background-size: cover;
+            background-image: url('https://cdn-icons-png.flaticon.com/512/741/741424.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+            width: 100px;
+            height: 100px;
+            position: absolute;
+            grid-column: 8;
+            grid-row: 8;
         }
 
-        #score {
-            margin-top: 20px;
-            font-size: 20px;
+        /* Signal - Positioned at the top-right corner */
+        .signal {
+            position: absolute;
+            left: -130px;
+            top: 10px;
+            width: 70px;
+            height: 70px;
+            background-image: url('https://cdn-icons-png.flaticon.com/128/898/898360.png');
+            background-size: contain;
+            background-repeat: no-repeat;
         }
+
+        /* Petrol Pump - Positioned at the bottom-left corner */
+        .petrol-pump {
+            position: absolute;
+            right: -130px;
+            bottom: -90px;
+            width: 60px;
+            height: 60px;
+            background-image: url('https://cdn-icons-png.flaticon.com/512/741/741419.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+        }
+
+        /* Score */
+        #score {
+            position: absolute;
+            top: 80px;      /* Adjusted to give space between restart button and score */
+            left: 10px;     /* Position to the left */
+            font-size: 20px;
+            z-index: 10;    /* Ensure it stays above other elements */
+        }
+
+        #restart-button {
+            position: absolute;
+            top: 10px;       /* Move to the top */
+            left: 10px;      /* Move to the left */
+            width: 150px;    /* Width of the button in pixels (about 4cm) */
+            padding: 12px 20px; /* Adjusted padding for balance */
+            font-size: 18px;
+            font-weight: bold;
+            background: linear-gradient(145deg, #ff7e5f, #feb47b); /* Gradient background */
+            color: white;
+            border: none;
+            border-radius: 12px; /* Rounded corners */
+            box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.2); /* Shadow for 3D effect */
+            cursor: pointer;
+            transition: all 0.3s ease-in-out; /* Smooth transition for hover effect */
+            z-index: 10; /* Ensure it's visible above other elements */
+        }
+
+        #restart-button:hover {
+            background: linear-gradient(145deg, #feb47b, #ff7e5f); /* Reverse the gradient on hover */
+            box-shadow: 4px 4px 15px rgba(0, 0, 0, 0.3); /* Add a stronger shadow on hover */
+            transform: scale(1.05); /* Slightly increase the size on hover */
+        }
+
+        #restart-button:active {
+            transform: scale(1); /* Reset size when clicked */
+            box-shadow: inset 2px 2px 6px rgba(0, 0, 0, 0.2); /* Inner shadow when pressed */
+        }
+
     </style>
 </head>
 <body>
-    <div id="game-board"></div>
+    <div id="game-board">
+        <!-- Parking Icon -->
+        <div class="exit" style="grid-column: 8; grid-row: 8;"></div>
+    </div>
     <div id="score">Moves: <span id="move-count">0</span></div>
     <button id="restart-button">Restart Level</button>
 
@@ -65,14 +133,15 @@
         let moveCount = 0;
         let currentLevel = 0;
 
+        // Updated car images for a more beautiful look
         const carImages = [
             'https://cdn-icons-png.flaticon.com/512/741/741407.png', // Car type 1
-            'https://cdn-icons-png.flaticon.com/512/741/741408.png', // Car type 2
-            'https://cdn-icons-png.flaticon.com/512/741/741409.png', // Car type 3
-            'https://cdn-icons-png.flaticon.com/512/741/741410.png', // Car type 4
-            'https://cdn-icons-png.flaticon.com/512/741/741411.png', // Car type 5
+            'https://cdn-icons-png.flaticon.com/512/741/741414.png', // Car type 2
+            'https://cdn-icons-png.flaticon.com/512/741/741433.png', // Car type 3
+            'https://cdn-icons-png.flaticon.com/512/741/741430.png', // Car type 4
+            'https://cdn-icons-png.flaticon.com/512/741/741435.png', // Car type 5
             'https://cdn-icons-png.flaticon.com/512/741/741412.png', // Car type 6
-            'https://cdn-icons-png.flaticon.com/512/741/741413.png', // Car type 7
+            'https://cdn-icons-png.flaticon.com/512/741/741436.png', // Car type 7
             'https://cdn-icons-png.flaticon.com/512/741/741414.png'  // Car type 8
         ];
 
@@ -124,7 +193,20 @@
                 createCar(carPosition);
             });
 
+            // Add the signal and petrol pump for decoration
+            addSignalAndPetrolPump();
+
             updateCarPosition(cars);
+        }
+
+        function addSignalAndPetrolPump() {
+            const signal = document.createElement('div');
+            signal.className = 'signal';
+            gameBoard.appendChild(signal);
+
+            const petrolPump = document.createElement('div');
+            petrolPump.className = 'petrol-pump';
+            gameBoard.appendChild(petrolPump);
         }
 
         function createCar(position) {
@@ -210,7 +292,9 @@
             }
         }
 
-        document.getElementById('restart-button').addEventListener('click', setupBoard);
+        document.getElementById('restart-button').addEventListener('click', () => {
+            setupBoard(); // Restart the current level
+        });
 
         document.addEventListener('keydown', (event) => {
             if (selectedCarIndex !== null) {
@@ -233,7 +317,7 @@
             }
         });
 
-        setupBoard();
+        setupBoard(); // Initial setup
     </script>
 </body>
 </html>
