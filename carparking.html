@@ -13,12 +13,14 @@
             background-size: cover;
             color: black;
             padding-left: 20px;
+            margin: 0;
+            padding: 0;
         }
 
         #game-board {
             position: relative;
-            width: 500px;
-            height: 400px;
+            width: 80vw; /* Default size for mobile and smaller screens */
+            height: 60vw; /* Adjust this for mobile size */
             display: grid;
             grid-template-columns: repeat(8, 1fr);
             grid-template-rows: repeat(8, 1fr);
@@ -33,6 +35,7 @@
             height: 100%;
             cursor: pointer;
             transform: scale(1.25);
+            transition: transform 0.3s ease-in-out;
         }
 
         .block {
@@ -52,7 +55,6 @@
             grid-row: 8;
         }
 
-        /* Signal - Positioned at the top-right corner */
         .signal {
             position: absolute;
             left: -130px;
@@ -64,7 +66,6 @@
             background-repeat: no-repeat;
         }
 
-        /* Petrol Pump - Positioned at the bottom-left corner */
         .petrol-pump {
             position: absolute;
             right: -130px;
@@ -76,73 +77,92 @@
             background-repeat: no-repeat;
         }
 
-        /* Score */
         #score {
             position: absolute;
-            top: 80px;      /* Adjusted to give space between restart button and score */
-            left: 10px;     /* Position to the left */
+            top: 80px;
+            left: 10px;
             font-size: 20px;
-            z-index: 10;    /* Ensure it stays above other elements */
+            z-index: 10;
         }
 
         #restart-button {
             position: absolute;
-            top: 10px;       /* Move to the top */
-            left: 10px;      /* Move to the left */
-            width: 150px;    /* Width of the button in pixels (about 4cm) */
-            padding: 12px 20px; /* Adjusted padding for balance */
-            font-size: 18px;
-            font-weight: bold;
-            background: linear-gradient(145deg, #ff7e5f, #feb47b); /* Gradient background */
-            color: white;
+            bottom: 10px;
+            left: 10px;
+            width: 40px;
+            height: 40px;
+            background-image: url('https://cdn-icons-png.flaticon.com/128/3185/3185863.png');
+            background-size: contain;
+            background-repeat: no-repeat;
             border: none;
-            border-radius: 12px; /* Rounded corners */
-            box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.2); /* Shadow for 3D effect */
             cursor: pointer;
-            transition: all 0.3s ease-in-out; /* Smooth transition for hover effect */
-            z-index: 10; /* Ensure it's visible above other elements */
+            z-index: 10;
         }
 
         #restart-button:hover {
-            background: linear-gradient(145deg, #feb47b, #ff7e5f); /* Reverse the gradient on hover */
-            box-shadow: 4px 4px 15px rgba(0, 0, 0, 0.3); /* Add a stronger shadow on hover */
-            transform: scale(1.05); /* Slightly increase the size on hover */
+            transform: scale(1.1);
         }
 
         #restart-button:active {
-            transform: scale(1); /* Reset size when clicked */
-            box-shadow: inset 2px 2px 6px rgba(0, 0, 0, 0.2); /* Inner shadow when pressed */
+            transform: scale(1);
         }
 
+        /* Media Queries for Mobile */
+        @media (max-width: 768px) {
+            #game-board {
+                width: 95vw;
+                height: 75vw;
+            }
+            #score {
+                font-size: 16px;
+            }
+            #restart-button {
+                width: 30px;
+                height: 30px;
+            }
+        }
+
+        /* Media Queries for Desktop */
+        @media (min-width: 769px) {
+            #game-board {
+                width: 600px;  /* Fixed width for desktop */
+                height: 500px; /* Fixed height for desktop */
+            }
+            #score {
+                font-size: 24px; /* Larger font size for desktop */
+            }
+            #restart-button {
+                width: 50px;
+                height: 50px;
+            }
+        }
     </style>
 </head>
 <body>
     <div id="game-board">
-        <!-- Parking Icon -->
         <div class="exit" style="grid-column: 8; grid-row: 8;"></div>
     </div>
     <div id="score">Moves: <span id="move-count">0</span></div>
-    <button id="restart-button">Restart Level</button>
+    <button id="restart-button"></button>
 
     <script>
         const gameBoard = document.getElementById('game-board');
         const moveCountElement = document.getElementById('move-count');
-        const boardSize = 8; 
+        const boardSize = 8;
         let cars = [];
         let selectedCarIndex = null; 
         let moveCount = 0;
         let currentLevel = 0;
 
-        // Updated car images for a more beautiful look
         const carImages = [
-            'https://cdn-icons-png.flaticon.com/512/741/741407.png', // Car type 1
-            'https://cdn-icons-png.flaticon.com/512/741/741414.png', // Car type 2
-            'https://cdn-icons-png.flaticon.com/512/741/741433.png', // Car type 3
-            'https://cdn-icons-png.flaticon.com/512/741/741430.png', // Car type 4
-            'https://cdn-icons-png.flaticon.com/512/741/741435.png', // Car type 5
-            'https://cdn-icons-png.flaticon.com/512/741/741412.png', // Car type 6
-            'https://cdn-icons-png.flaticon.com/512/741/741436.png', // Car type 7
-            'https://cdn-icons-png.flaticon.com/512/741/741414.png'  // Car type 8
+            'https://cdn-icons-png.flaticon.com/512/741/741407.png', 
+            'https://cdn-icons-png.flaticon.com/512/741/741414.png', 
+            'https://cdn-icons-png.flaticon.com/512/741/741433.png', 
+            'https://cdn-icons-png.flaticon.com/512/741/741430.png', 
+            'https://cdn-icons-png.flaticon.com/512/741/741435.png', 
+            'https://cdn-icons-png.flaticon.com/512/741/741412.png', 
+            'https://cdn-icons-png.flaticon.com/512/741/741436.png', 
+            'https://cdn-icons-png.flaticon.com/512/741/741414.png'  
         ];
 
         const levels = [
@@ -156,8 +176,8 @@
         function generateBlocks(num) {
             const blocks = [];
             while (blocks.length < num) {
-                const x = Math.floor(Math.random() * (boardSize - 2)) + 1; 
-                const y = Math.floor(Math.random() * (boardSize - 2)) + 1; 
+                const x = Math.floor(Math.random() * (boardSize - 2)) + 1;
+                const y = Math.floor(Math.random() * (boardSize - 2)) + 1;
                 if (!blocks.some(block => block.x === x && block.y === y) && 
                     !cars.some(car => car.x === x && car.y === y)) {
                     blocks.push({ x, y });
@@ -193,9 +213,7 @@
                 createCar(carPosition);
             });
 
-            // Add the signal and petrol pump for decoration
             addSignalAndPetrolPump();
-
             updateCarPosition(cars);
         }
 
@@ -220,7 +238,7 @@
         }
 
         function selectCar(index) {
-            selectedCarIndex = index; 
+            selectedCarIndex = index;
             const carElements = document.querySelectorAll('.car');
             carElements.forEach((carElement, i) => {
                 carElement.style.border = (i === selectedCarIndex) ? '2px solid yellow' : 'none'; 
@@ -246,17 +264,10 @@
 
             if (newX < 1 || newY < 1 || newX > boardSize || newY > boardSize) return;
 
-            // Check for blocks
-            if (level.blocks.some(block => block.x === newX && block.y === newY)) {
-                return; 
-            }
+            if (level.blocks.some(block => block.x === newX && block.y === newY)) return;
 
-            // Check for other cars
-            if (cars.some((c, index) => index !== carIndex && c.x === newX && c.y === newY)) {
-                return; 
-            }
+            if (cars.some((c, index) => index !== carIndex && c.x === newX && c.y === newY)) return;
 
-            // Update car position
             cars[carIndex] = { ...car, x: newX, y: newY };
             updateCarPosition(cars);
             moveCount++;
@@ -269,8 +280,7 @@
             const carElements = document.querySelectorAll('.car');
             carElements.forEach((carElement, index) => {
                 if (index < cars.length) {
-                    carElement.style.gridColumn = cars[index].x;
-                    carElement.style.gridRow = cars[index].y;
+                    carElement.style.transform = `translate(${(cars[index].x - 1) * 62.5}px, ${(cars[index].y - 1) * 50}px)`;
                 }
             });
         }
@@ -293,7 +303,7 @@
         }
 
         document.getElementById('restart-button').addEventListener('click', () => {
-            setupBoard(); // Restart the current level
+            setupBoard(); 
         });
 
         document.addEventListener('keydown', (event) => {
@@ -317,7 +327,7 @@
             }
         });
 
-        setupBoard(); // Initial setup
+        setupBoard(); 
     </script>
 </body>
 </html>
